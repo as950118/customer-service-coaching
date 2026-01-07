@@ -151,10 +151,10 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
-# OpenAI Configuration
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
-# 모델 선택: gpt-4o-mini (기본값, 비용 효율적), gpt-4o, gpt-4-turbo, gpt-4 등
-OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
+# Google Gemini Configuration
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+# 모델 선택: gemini-1.5-pro (기본값, multimodal 지원), gemini-1.5-flash (빠르고 저렴)
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-1.5-flash')
 
 # REST Framework
 REST_FRAMEWORK = {

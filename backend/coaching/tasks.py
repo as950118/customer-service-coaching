@@ -2,8 +2,9 @@ from celery import shared_task
 from django.utils import timezone
 from django.conf import settings
 from .models import Consultation
-import openai
+import google.generativeai as genai
 import os
+import mimetypes
 
 
 @shared_task
@@ -14,17 +15,16 @@ def analyze_consultation(consultation_id):
         consultation.status = 'processing'
         consultation.save()
         
-        # 파일 내용 읽기
+        # Gemini API 설정
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.GenerativeModel(settings.GEMINI_MODEL)
+        
         file_path = consultation.file.path
-        file_content = _read_file_content(file_path, consultation.file_type)
+        file_type = consultation.file_type
         
-        # OpenAI API를 사용한 분석
-        client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-        
-        prompt = f"""다음은 고객 상담 대화 내용입니다. 이 상담을 분석하여 개선이 필요한 사항들을 도출해주세요.
-
-상담 내용:
-{file_content}
+        # 프롬프트 구성
+        system_prompt = "당신은 고객 상담 품질을 분석하는 전문가입니다."
+        user_prompt = """다음 상담 내용을 분석하여 개선이 필요한 사항들을 도출해주세요.
 
 다음 항목들을 중심으로 분석해주세요:
 1. 고객 응대 태도
@@ -33,17 +33,49 @@ def analyze_consultation(consultation_id):
 4. 개선이 필요한 구체적인 사항
 
 분석 결과를 구조화된 형태로 제공해주세요."""
-
-        response = client.chat.completions.create(
-            model=settings.OPENAI_MODEL,
-            messages=[
-                {"role": "system", "content": "당신은 고객 상담 품질을 분석하는 전문가입니다."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-        )
         
-        analysis_result = response.choices[0].message.content
+        # 파일 타입에 따라 처리
+        if file_type == 'text':
+            # 텍스트 파일: 내용 읽기
+            with open(file_path, 'r', encoding='utf-8') as f:
+                file_content = f.read()
+            
+            full_prompt = f"""{user_prompt}
+
+상담 내용:
+{file_content}"""
+            
+            response = model.generate_content(full_prompt)
+            analysis_result = response.text
+            
+        elif file_type in ['audio', 'video']:
+            # 오디오/비디오 파일: Gemini가 직접 처리 (multimodal)
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if not mime_type:
+                if file_type == 'audio':
+                    mime_type = 'audio/mpeg'
+                elif file_type == 'video':
+                    mime_type = 'video/mp4'
+            
+            # 파일 업로드 및 분석
+            with open(file_path, 'rb') as f:
+                file_data = f.read()
+            
+            # Gemini에 파일과 프롬프트 전달
+            file_part = {
+                "mime_type": mime_type,
+                "data": file_data
+            }
+            
+            response = model.generate_content([
+                system_prompt,
+                user_prompt,
+                file_part
+            ])
+            analysis_result = response.text
+            
+        else:
+            raise ValueError(f"지원하지 않는 파일 형식: {file_type}")
         
         # 결과 저장
         consultation.analysis_result = analysis_result
@@ -62,26 +94,4 @@ def analyze_consultation(consultation_id):
         raise e
 
 
-def _read_file_content(file_path, file_type):
-    """파일 타입에 따라 내용 읽기"""
-    if file_type == 'text':
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return f.read()
-    elif file_type in ['audio', 'video']:
-        # OpenAI Whisper API를 사용하여 오디오/비디오 파일 전사
-        try:
-            client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-            
-            with open(file_path, 'rb') as audio_file:
-                transcript = client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=audio_file,
-                    language="ko"  # 한국어로 지정
-                )
-                return transcript.text
-        except Exception as e:
-            # Whisper API 실패 시 파일명만 반환
-            return f"오디오/비디오 파일 전사 실패: {os.path.basename(file_path)} (에러: {str(e)})"
-    else:
-        return "지원하지 않는 파일 형식입니다."
 

@@ -28,17 +28,20 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 `.env` 파일을 생성하고 다음 내용을 추가하세요:
 
 ```
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4o-mini  # 기본값: gpt-4o-mini (비용 효율적), 다른 옵션: gpt-4o, gpt-4-turbo, gpt-4
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-1.5-flash  # 기본값: gemini-1.5-flash (빠르고 저렴)
 CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/0
 ```
 
 **모델 선택 가이드:**
-- `gpt-4o-mini`: 기본값, 비용 효율적이며 상담 분석에 충분한 성능 제공
-- `gpt-4o`: 더 높은 성능이 필요한 경우
-- `gpt-4-turbo`: 최고 성능이 필요한 경우
-- `gpt-4`: 레거시 모델 (비추천)
+- `gemini-1.5-flash`: 기본값, 빠르고 저렴하며 multimodal 지원 (오디오/비디오 직접 처리)
+- `gemini-1.5-pro`: 더 높은 성능이 필요한 경우, multimodal 지원
+
+**Gemini API 키 발급:**
+1. [Google AI Studio](https://makersuite.google.com/app/apikey) 접속
+2. "Create API Key" 클릭
+3. 생성된 API 키를 `.env` 파일에 추가
 
 ### 3. 데이터베이스 마이그레이션
 ```bash

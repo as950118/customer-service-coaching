@@ -33,7 +33,7 @@ customer-service-coaching/
 - **Django**: 웹 프레임워크
 - **Celery**: 비동기 작업 처리
 - **Redis**: Celery 브로커 및 캐시
-- **OpenAI API**: 상담 내용 분석
+- **Google Gemini API**: 상담 내용 분석 (multimodal 지원)
 - **Django REST Framework**: API 개발
 - **drf-yasg**: Swagger/OpenAPI 문서화
 - **SSE (Server-Sent Events)**: 실시간 알림
@@ -62,7 +62,7 @@ customer-service-coaching/
 - Python 3.8+
 - Node.js 16+
 - Redis (Celery 브로커용) - Docker 사용 시 Docker만 필요
-- OpenAI API Key
+- Google Gemini API Key
 - Docker & Docker Compose (선택사항, Redis용)
 
 #### Redis 설치
@@ -179,16 +179,20 @@ npm start
 ### Backend
 `backend/.env` 파일을 생성하고 다음 내용을 추가하세요:
 ```
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4o-mini  # 기본값: gpt-4o-mini (비용 효율적)
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-1.5-flash  # 기본값: gemini-1.5-flash (빠르고 저렴)
 CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/0
 ```
 
 **모델 선택:**
-- `gpt-4o-mini` (기본값): 비용 효율적, 상담 분석에 충분한 성능
-- `gpt-4o`: 더 높은 성능 필요 시
-- `gpt-4-turbo`: 최고 성능 필요 시
+- `gemini-1.5-flash` (기본값): 빠르고 저렴, multimodal 지원
+- `gemini-1.5-pro`: 더 높은 성능 필요 시, multimodal 지원
+
+**Gemini API 키 발급:**
+1. [Google AI Studio](https://makersuite.google.com/app/apikey) 접속
+2. API 키 생성
+3. `.env` 파일에 추가
 
 ### Frontend (선택사항)
 `frontend/.env` 파일을 생성하고 다음 내용을 추가하세요:

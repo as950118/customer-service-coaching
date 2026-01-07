@@ -153,6 +153,8 @@ CELERY_TIMEZONE = TIME_ZONE
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+# 모델 선택: gpt-4o-mini (기본값, 비용 효율적), gpt-4o, gpt-4-turbo, gpt-4 등
+OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
 
 # REST Framework
 REST_FRAMEWORK = {

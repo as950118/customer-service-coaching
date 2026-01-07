@@ -35,7 +35,7 @@ def analyze_consultation(consultation_id):
 분석 결과를 구조화된 형태로 제공해주세요."""
 
         response = client.chat.completions.create(
-            model="gpt-4",
+            model=settings.OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": "당신은 고객 상담 품질을 분석하는 전문가입니다."},
                 {"role": "user", "content": prompt}
@@ -68,9 +68,20 @@ def _read_file_content(file_path, file_type):
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
     elif file_type in ['audio', 'video']:
-        # 오디오/비디오 파일의 경우 전사가 필요하지만, 
-        # 여기서는 간단히 파일명만 반환 (실제로는 Whisper API 등을 사용)
-        return f"오디오/비디오 파일: {os.path.basename(file_path)}"
+        # OpenAI Whisper API를 사용하여 오디오/비디오 파일 전사
+        try:
+            client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+            
+            with open(file_path, 'rb') as audio_file:
+                transcript = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                    language="ko"  # 한국어로 지정
+                )
+                return transcript.text
+        except Exception as e:
+            # Whisper API 실패 시 파일명만 반환
+            return f"오디오/비디오 파일 전사 실패: {os.path.basename(file_path)} (에러: {str(e)})"
     else:
         return "지원하지 않는 파일 형식입니다."
 

@@ -61,8 +61,47 @@ customer-service-coaching/
 ### 사전 요구사항
 - Python 3.8+
 - Node.js 16+
-- Redis
+- Redis (Celery 브로커용) - Docker 사용 시 Docker만 필요
 - OpenAI API Key
+- Docker & Docker Compose (선택사항, Redis용)
+
+#### Redis 설치
+
+**Docker 사용 (추천):**
+```bash
+# Docker Compose로 Redis 실행
+docker-compose up -d redis
+```
+
+**직접 설치:**
+
+**macOS (Homebrew):**
+```bash
+brew install redis
+brew services start redis  # 자동 시작 설정
+# 또는 수동 실행: redis-server
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt-get update
+sudo apt-get install redis-server
+sudo systemctl start redis
+```
+
+**Windows:**
+- [Redis for Windows](https://github.com/microsoftarchive/redis/releases) 다운로드
+- 또는 WSL2 사용
+
+**Docker 사용:**
+```bash
+docker run -d -p 6379:6379 redis:latest
+```
+
+Redis 설치 확인:
+```bash
+redis-cli ping  # "PONG" 응답이 오면 정상
+```
 
 ### 설치 및 실행
 
@@ -77,15 +116,48 @@ python manage.py runserver
 ```
 
 #### Celery Worker 실행
+
+**방법 1: 실행 스크립트 사용 (추천)**
 ```bash
 cd backend
+./start_celery.sh
+```
+
+**방법 2: 직접 실행**
+```bash
+cd backend
+source venv/bin/activate
 celery -A config worker -l info
 ```
 
+**참고**: 
+- 환경 변수는 `backend/.env` 파일에서 자동으로 로드됩니다 (별도 설정 불필요)
+- Celery Worker는 별도 터미널에서 실행해야 합니다
+
 #### Redis 실행
+
+**방법 1: Docker 사용 (추천)**
+```bash
+# Docker Compose로 Redis 실행
+docker-compose up -d redis
+
+# Redis 상태 확인
+docker-compose ps
+
+# Redis 로그 확인
+docker-compose logs redis
+
+# Redis 중지
+docker-compose stop redis
+```
+
+**방법 2: 직접 설치 및 실행**
+Redis가 설치되어 있다면:
 ```bash
 redis-server
 ```
+
+Redis가 설치되어 있지 않다면 위의 "사전 요구사항" 섹션을 참고하여 먼저 설치하세요.
 
 #### Frontend 설정
 ```bash
@@ -108,9 +180,15 @@ npm start
 `backend/.env` 파일을 생성하고 다음 내용을 추가하세요:
 ```
 OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o-mini  # 기본값: gpt-4o-mini (비용 효율적)
 CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/0
 ```
+
+**모델 선택:**
+- `gpt-4o-mini` (기본값): 비용 효율적, 상담 분석에 충분한 성능
+- `gpt-4o`: 더 높은 성능 필요 시
+- `gpt-4-turbo`: 최고 성능 필요 시
 
 ### Frontend (선택사항)
 `frontend/.env` 파일을 생성하고 다음 내용을 추가하세요:
@@ -120,7 +198,42 @@ REACT_APP_API_URL=http://localhost:8000/api
 
 ## 실행 순서
 
-1. Redis 서버 실행
+### Docker를 사용하는 경우 (추천)
+
+1. **Redis 실행 (Docker)**
+   ```bash
+   docker-compose up -d redis
+   ```
+
+2. **Django 서버 실행**
+   ```bash
+   cd backend
+   source venv/bin/activate
+   python manage.py runserver
+   ```
+
+3. **Celery Worker 실행** (별도 터미널)
+   ```bash
+   cd backend
+   ./start_celery.sh
+   # 또는
+   source venv/bin/activate
+   celery -A config worker -l info
+   ```
+
+4. **React 개발 서버 실행** (별도 터미널)
+   ```bash
+   cd frontend
+   npm start
+   ```
+
+**중요**: 
+- Celery Worker는 **별도 터미널**에서 실행해야 합니다
+- 환경 변수는 `backend/.env` 파일에서 자동으로 로드되므로 별도 설정이 필요 없습니다
+
+### Docker를 사용하지 않는 경우
+
+1. Redis 서버 실행 (`redis-server` 또는 `brew services start redis`)
 2. Django 서버 실행 (`python manage.py runserver`)
 3. Celery Worker 실행 (`celery -A config worker -l info`)
 4. React 개발 서버 실행 (`npm start`)
@@ -131,6 +244,35 @@ Django 서버 실행 후 다음 URL에서 Swagger API 문서를 확인할 수 �
 
 - **Swagger UI**: http://localhost:8000/swagger/
 - **ReDoc**: http://localhost:8000/redoc/
+
+## 테스트용 샘플 데이터
+
+프로젝트 루트의 `sample_data/` 디렉토리에 테스트용 샘플 데이터가 포함되어 있습니다:
+
+- **텍스트 파일**: 4개의 다양한 상담 시나리오 샘플
+  - 배송 지연 및 환불 요청
+  - 제품 불만 및 A/S 요청
+  - 환불 및 교환 요청
+  - 기술 지원 요청
+
+- **오디오/비디오 파일**: 
+  - OpenAI Whisper API를 사용하여 자동 전사
+  - 지원 형식: MP3, WAV, M4A, OGG (오디오), MP4, AVI, MOV, WEBM (비디오)
+
+샘플 데이터 사용 방법은 `sample_data/README.md`를 참고하세요.
+
+## 지원 파일 형식
+
+### 텍스트
+- `.txt`, `.doc`, `.docx` 등 텍스트 파일
+
+### 오디오
+- MP3, WAV, M4A, OGG
+- OpenAI Whisper API를 사용하여 자동 전사
+
+### 비디오
+- MP4, AVI, MOV, WEBM
+- OpenAI Whisper API를 사용하여 오디오 추출 후 전사
 
 ## 라이선스
 

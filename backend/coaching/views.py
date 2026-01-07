@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.renderers import BaseRenderer
 from django.http import StreamingHttpResponse
 from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
@@ -8,6 +9,16 @@ from drf_yasg import openapi
 from .models import Consultation
 from .serializers import ConsultationSerializer, ConsultationCreateSerializer
 from .tasks import analyze_consultation
+
+
+class SSERenderer(BaseRenderer):
+    """Server-Sent Events 렌더러"""
+    media_type = 'text/event-stream'
+    format = 'sse'
+    
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        # 이 메서드는 사용되지 않지만 DRF 요구사항을 충족하기 위해 필요
+        return data
 
 
 class ConsultationViewSet(viewsets.ModelViewSet):
@@ -26,6 +37,12 @@ class ConsultationViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return ConsultationCreateSerializer
         return ConsultationSerializer
+    
+    def finalize_response(self, request, response, *args, **kwargs):
+        """SSE 스트림의 경우 DRF 처리 흐름 우회"""
+        if isinstance(response, StreamingHttpResponse):
+            return response
+        return super().finalize_response(request, response, *args, **kwargs)
     
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -60,7 +77,7 @@ class ConsultationViewSet(viewsets.ModelViewSet):
         },
         tags=['상담']
     )
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get'], renderer_classes=[SSERenderer])
     def stream(self, request, pk=None):
         """SSE 스트림으로 분석 진행 상황 전송"""
         consultation = self.get_object()
@@ -83,9 +100,11 @@ class ConsultationViewSet(viewsets.ModelViewSet):
                 import time
                 time.sleep(1)
         
+        # DRF의 응답 처리 흐름을 우회하여 직접 StreamingHttpResponse 반환
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Cache-Control'] = 'no-cache'
         response['X-Accel-Buffering'] = 'no'
+        # Connection 헤더는 WSGI에서 hop-by-hop 헤더로 처리되므로 제거
         return response
     
     def _format_event(self, event_type, consultation):

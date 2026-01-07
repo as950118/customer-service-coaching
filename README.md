@@ -181,6 +181,12 @@ npm start
 ```
 GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-1.5-flash  # 기본값: gemini-1.5-flash (빠르고 저렴)
+
+# Supabase Storage (선택사항 - 파일을 클라우드에 저장하려면)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_service_role_key  # service_role key 사용 (서버용)
+SUPABASE_STORAGE_BUCKET=consultations
+
 CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/0
 ```

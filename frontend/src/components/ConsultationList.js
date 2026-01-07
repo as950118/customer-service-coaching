@@ -1,4 +1,5 @@
 import React from 'react';
+import { downloadConsultationFile } from '../api';
 import './ConsultationList.css';
 
 const ConsultationList = ({ consultations, loading, onRefresh }) => {
@@ -43,7 +44,21 @@ const ConsultationList = ({ consultations, loading, onRefresh }) => {
               {consultation.completed_at && (
                 <p><strong>완료일:</strong> {new Date(consultation.completed_at).toLocaleString('ko-KR')}</p>
               )}
+              <div className="file-actions">
+                <button 
+                  className="download-btn"
+                  onClick={() => downloadConsultationFile(consultation.id, consultation.title)}
+                >
+                  원본 파일 다운로드
+                </button>
+              </div>
             </div>
+            {consultation.original_content && (
+              <div className="original-content">
+                <h4>원본 내용</h4>
+                <div className="result-content">{consultation.original_content}</div>
+              </div>
+            )}
             {consultation.analysis_result && (
               <div className="analysis-result">
                 <h4>분석 결과</h4>

@@ -52,3 +52,11 @@ export const subscribeToConsultation = (consultationId, onMessage) => {
   return eventSource;
 };
 
+export const downloadConsultationFile = (consultationId, fileName) => {
+  // Supabase URL이 있으면 직접 다운로드, 없으면 Django 엔드포인트 사용
+  const url = `${API_BASE_URL}/consultations/${consultationId}/download/`;
+  
+  // 새 창에서 열기 (브라우저가 다운로드 처리)
+  window.open(url, '_blank');
+};
+

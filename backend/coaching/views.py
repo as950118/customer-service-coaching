@@ -2,10 +2,13 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.renderers import BaseRenderer
-from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse, HttpResponse, FileResponse, HttpResponseRedirect
 from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import os
+import requests
+from urllib.parse import urlparse
 from .models import Consultation
 from .serializers import ConsultationSerializer, ConsultationCreateSerializer
 from .tasks import analyze_consultation
@@ -39,8 +42,8 @@ class ConsultationViewSet(viewsets.ModelViewSet):
         return ConsultationSerializer
     
     def finalize_response(self, request, response, *args, **kwargs):
-        """SSE 스트림의 경우 DRF 처리 흐름 우회"""
-        if isinstance(response, StreamingHttpResponse):
+        """SSE 스트림과 파일 다운로드의 경우 DRF 처리 흐름 우회"""
+        if isinstance(response, (StreamingHttpResponse, FileResponse, HttpResponseRedirect)):
             return response
         return super().finalize_response(request, response, *args, **kwargs)
     
@@ -106,6 +109,75 @@ class ConsultationViewSet(viewsets.ModelViewSet):
         response['X-Accel-Buffering'] = 'no'
         # Connection 헤더는 WSGI에서 hop-by-hop 헤더로 처리되므로 제거
         return response
+    
+    @swagger_auto_schema(
+        method='get',
+        operation_summary='원본 파일 다운로드',
+        operation_description='업로드된 원본 파일을 다운로드합니다.',
+        tags=['상담']
+    )
+    @action(detail=True, methods=['get'], renderer_classes=[SSERenderer])
+    def download(self, request, pk=None):
+        """원본 파일 다운로드"""
+        consultation = self.get_object()
+        
+        # Supabase URL이 있으면 파일을 다운로드하여 반환
+        if consultation.supabase_file_url:
+            try:
+                # Supabase URL에서 파일 다운로드
+                file_response = requests.get(consultation.supabase_file_url, stream=True)
+                file_response.raise_for_status()
+                
+                # 파일명 추출 (URL에서 또는 원본 파일명 사용)
+                file_name = os.path.basename(consultation.file.name) if consultation.file else 'download'
+                # URL에서 파일명 추출 시도
+                parsed_url = urlparse(consultation.supabase_file_url)
+                url_filename = os.path.basename(parsed_url.path)
+                if url_filename and url_filename != '/':
+                    file_name = url_filename
+                
+                # Content-Type 확인
+                content_type = file_response.headers.get('Content-Type', 'application/octet-stream')
+                
+                # 파일을 다운로드로 제공
+                response = HttpResponse(file_response.content, content_type=content_type)
+                response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+                return response
+            except requests.RequestException as e:
+                # Supabase 다운로드 실패 시 로컬 파일로 폴백
+                print(f"Supabase 파일 다운로드 실패: {e}")
+                if consultation.file and os.path.exists(consultation.file.path):
+                    file_path = consultation.file.path
+                    file_name = os.path.basename(file_path)
+                    
+                    response = FileResponse(
+                        open(file_path, 'rb'),
+                        content_type='application/octet-stream'
+                    )
+                    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+                    return response
+                else:
+                    return Response(
+                        {'error': '파일을 찾을 수 없습니다.'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+        
+        # 로컬 파일 다운로드
+        if consultation.file and os.path.exists(consultation.file.path):
+            file_path = consultation.file.path
+            file_name = os.path.basename(file_path)
+            
+            response = FileResponse(
+                open(file_path, 'rb'),
+                content_type='application/octet-stream'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+        else:
+            return Response(
+                {'error': '파일을 찾을 수 없습니다.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
     
     def _format_event(self, event_type, consultation):
         """이벤트 데이터 포맷팅"""

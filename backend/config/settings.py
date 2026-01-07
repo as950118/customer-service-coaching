@@ -153,8 +153,16 @@ CELERY_TIMEZONE = TIME_ZONE
 
 # Google Gemini Configuration
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
-# 모델 선택: gemini-1.5-pro (기본값, multimodal 지원), gemini-1.5-flash (빠르고 저렴)
-GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-1.5-flash')
+# 모델 선택: gemini-2.0-flash (기본값, 빠르고 저렴, multimodal 지원), gemini-2.5-flash, gemini-2.5-pro
+# 사용 가능한 모델: gemini-2.0-flash, gemini-2.5-flash, gemini-2.5-pro, gemini-flash-latest, gemini-pro-latest
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.0-flash')
+
+# Supabase Configuration
+SUPABASE_URL = os.getenv('SUPABASE_URL', '')
+# 서버 사이드에서는 service_role key 사용 권장 (RLS 우회, 모든 권한)
+# 클라이언트에서는 anon key 사용 (RLS 정책 적용)
+SUPABASE_KEY = os.getenv('SUPABASE_KEY', '')
+SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', 'consultations')
 
 # REST Framework
 REST_FRAMEWORK = {

@@ -8,8 +8,10 @@ class ConsultationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Consultation
         fields = ['id', 'title', 'file', 'file_type', 'status', 'status_display', 
-                  'analysis_result', 'created_at', 'updated_at', 'completed_at']
-        read_only_fields = ['status', 'analysis_result', 'created_at', 'updated_at', 'completed_at']
+                  'original_content', 'analysis_result', 'supabase_file_url',
+                  'created_at', 'updated_at', 'completed_at']
+        read_only_fields = ['status', 'original_content', 'analysis_result', 
+                          'supabase_file_url', 'created_at', 'updated_at', 'completed_at']
 
 
 class ConsultationCreateSerializer(serializers.ModelSerializer):

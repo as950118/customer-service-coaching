@@ -59,6 +59,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# HTTPS -> HTTP 요청을 위한 보안 설정 완화 (개발 환경용)
+# 프로덕션에서는 제거하거나 적절히 설정하세요
+if DEBUG:
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [

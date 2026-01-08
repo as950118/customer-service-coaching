@@ -149,11 +149,39 @@ CLOUDINARY_STORAGE = {
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "*",
 ]
 
+# 개발 환경에서는 모든 origin 허용 (선택사항)
+# CORS_ALLOW_ALL_ORIGINS = True  # 개발용, 프로덕션에서는 사용하지 마세요
+
 CORS_ALLOW_CREDENTIALS = True
+
+# 허용할 HTTP 메서드
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# 허용할 HTTP 헤더
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Preflight 요청 캐시 시간 (초)
+CORS_PREFLIGHT_MAX_AGE = 86400
 
 # Celery Configuration
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')

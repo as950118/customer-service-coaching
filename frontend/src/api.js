@@ -1,4 +1,23 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+// 환경에 따라 API URL 결정
+// Vercel 배포 시: 프록시를 통해 /api 사용 (HTTPS → HTTPS)
+// 로컬 개발 시: 직접 백엔드 URL 사용
+const getApiBaseUrl = () => {
+  // 환경 변수가 설정되어 있으면 사용
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // Vercel 배포 환경인지 확인 (window.location.hostname이 vercel.app을 포함하는지)
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    // Vercel에서는 프록시를 통해 /api 사용
+    return '/api';
+  }
+  
+  // 로컬 개발 환경
+  return 'http://localhost:8000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // 헬퍼 함수: 인증 헤더 가져오기
 const getAuthHeaders = () => {

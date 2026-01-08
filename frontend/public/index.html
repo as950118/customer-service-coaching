@@ -8,11 +8,10 @@
     <meta name="theme-color" content="#667eea" />
     <meta name="referrer" content="no-referrer-when-downgrade" />
     <!-- 
-      Mixed Content 허용을 위한 CSP 설정 (개발 환경용)
-      HTTP 백엔드 서버 IP를 명시적으로 허용
-      프로덕션에서는 HTTPS 백엔드를 사용하거나 프록시를 사용하는 것을 권장합니다
+      CSP 설정: Vercel 배포 시 프록시를 통해 /api 사용하므로 HTTPS만 허용
+      로컬 개발 시에는 환경 변수로 HTTP 백엔드 허용 가능
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' http://localhost:* http://127.0.0.1:* http://112.158.127.64:* https:; connect-src 'self' http://localhost:* http://127.0.0.1:* http://112.158.127.64:* https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; connect-src 'self' https: http://localhost:* http://127.0.0.1:* data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:;">
     <meta
       name="description"
       content="AI 기반 고객 상담 코칭 시스템 - 상담 품질 분석 및 개선 제안"

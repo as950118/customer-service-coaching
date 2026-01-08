@@ -18,6 +18,12 @@
   align-items: center;
 }
 
+.header-logo {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
 .dashboard-header h1 {
   margin: 0;
   font-size: 1.5rem;

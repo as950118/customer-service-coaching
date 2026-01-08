@@ -1,0 +1,61 @@
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logo-icon {
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.logo-text {
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+/* 크기 변형 */
+.logo-small .logo-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.logo-small .logo-text {
+  font-size: 14px;
+}
+
+.logo-medium .logo-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.logo-medium .logo-text {
+  font-size: 18px;
+}
+
+.logo-large .logo-icon {
+  width: 80px;
+  height: 80px;
+}
+
+.logo-large .logo-text {
+  font-size: 28px;
+}
+
+/* 흰색 배경용 */
+.logo-white .logo-icon {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.logo-white .logo-text {
+  color: white;
+  -webkit-text-fill-color: white;
+  background: none;
+}
+

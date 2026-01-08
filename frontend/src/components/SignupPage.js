@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import Logo from './Logo';
 import { register } from '../api';
 import './AuthPage.css';
 
@@ -70,6 +71,7 @@ function SignupPage() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
+            <Logo size="medium" showText={true} className="auth-logo" />
             <h1>회원가입</h1>
             <p>새로운 계정을 만들어 시작하세요</p>
           </div>

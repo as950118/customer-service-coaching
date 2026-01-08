@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import ConsultationUpload from './ConsultationUpload';
 import ConsultationList from './ConsultationList';
+import Logo from './Logo';
 import { getConsultations, getCurrentUser } from '../api';
 import './Dashboard.css';
 
@@ -78,7 +79,9 @@ function Dashboard() {
     <div className="dashboard">
       <header className="dashboard-header">
         <div className="header-content">
-          <h1>고객 상담 코칭 시스템</h1>
+          <Link to="/dashboard" className="header-logo">
+            <Logo size="small" showText={true} />
+          </Link>
           <div className="header-right">
             {user && (
               <div className="user-info">

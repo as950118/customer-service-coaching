@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import Logo from './Logo';
 import { login } from '../api';
 import './AuthPage.css';
 
@@ -50,6 +51,7 @@ function LoginPage() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
+            <Logo size="medium" showText={true} className="auth-logo" />
             <h1>로그인</h1>
             <p>고객 상담 코칭 시스템에 오신 것을 환영합니다</p>
           </div>

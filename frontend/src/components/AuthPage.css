@@ -24,6 +24,11 @@
   margin-bottom: 30px;
 }
 
+.auth-logo {
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
 .auth-header h1 {
   font-size: 2rem;
   color: #333;

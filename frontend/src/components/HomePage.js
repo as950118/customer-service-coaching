@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Logo from './Logo';
 import './HomePage.css';
 
 function HomePage() {
@@ -7,6 +8,7 @@ function HomePage() {
     <div className="home-page">
       <div className="home-hero">
         <div className="hero-content">
+          <Logo size="large" showText={false} className="hero-logo" />
           <h1 className="hero-title">고객 상담 코칭 시스템</h1>
           <p className="hero-subtitle">
             AI 기반 상담 분석으로 고객 서비스 품질을 향상시키세요

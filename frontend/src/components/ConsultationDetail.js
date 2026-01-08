@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getConsultation, downloadConsultationFile } from '../api';
 import AnalysisResultDisplay from './AnalysisResultDisplay';
+import Logo from './Logo';
 import './ConsultationDetail.css';
 
 function ConsultationDetail() {
@@ -79,6 +80,9 @@ function ConsultationDetail() {
   return (
     <div className="consultation-detail">
       <div className="detail-header">
+        <Link to="/dashboard" className="detail-logo">
+          <Logo size="small" showText={true} />
+        </Link>
         <button onClick={handleBack} className="back-btn">
           ← 목록으로
         </button>

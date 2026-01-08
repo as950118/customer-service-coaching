@@ -55,6 +55,12 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.detail-logo {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
 .back-btn {
   background: none;
   border: none;

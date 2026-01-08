@@ -63,7 +63,13 @@ customer-service-coaching/
 - Node.js 16+
 - Redis (Celery 브로커용) - Docker 사용 시 Docker만 필요
 - Google Gemini API Key
+- FFmpeg (비디오 파일 처리용)
 - Docker & Docker Compose (선택사항, Redis용)
+
+**FFmpeg 설치:**
+- **macOS**: `brew install ffmpeg`
+- **Linux**: `sudo apt-get install ffmpeg`
+- **Windows**: [FFmpeg 다운로드](https://ffmpeg.org/download.html)
 
 #### Redis 설치
 
@@ -255,6 +261,17 @@ Django 서버 실행 후 다음 URL에서 Swagger API 문서를 확인할 수 �
 - **Swagger UI**: http://localhost:8000/swagger/
 - **ReDoc**: http://localhost:8000/redoc/
 
+## KPI 시트
+
+프로젝트의 핵심 성과 지표(KPI)는 `KPI_SHEET.md` 파일에서 확인할 수 있습니다.
+
+주요 KPI 카테고리:
+- 사용자 활동 지표 (업로드 수, 활성 사용자 등)
+- 시스템 성능 지표 (처리 시간, 성공률 등)
+- AI 분석 품질 지표 (분석 품질, API 효율성 등)
+- 비즈니스 가치 지표 (상담 품질 개선, 사용자 가치 등)
+- 기술적 지표 (데이터 관리, 보안 등)
+
 ## 테스트용 샘플 데이터
 
 프로젝트 루트의 `sample_data/` 디렉토리에 테스트용 샘플 데이터가 포함되어 있습니다:
@@ -278,11 +295,12 @@ Django 서버 실행 후 다음 URL에서 Swagger API 문서를 확인할 수 �
 
 ### 오디오
 - MP3, WAV, M4A, OGG
-- OpenAI Whisper API를 사용하여 자동 전사
+- **로컬 OpenAI Whisper**를 사용하여 자동 전사 (API 호출 없음)
 
 ### 비디오
 - MP4, AVI, MOV, WEBM
-- OpenAI Whisper API를 사용하여 오디오 추출 후 전사
+- **FFmpeg**로 오디오 추출 후 **로컬 OpenAI Whisper**로 전사 (API 호출 없음)
+- 비디오 파일 처리를 위해 FFmpeg 설치 필요
 
 ## 라이선스
 

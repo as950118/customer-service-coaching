@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { uploadConsultation, subscribeToConsultation } from '../api';
+import AnalysisResultDisplay from './AnalysisResultDisplay';
 import './ConsultationUpload.css';
 
 const ConsultationUpload = ({ onUploadSuccess }) => {
@@ -18,6 +19,33 @@ const ConsultationUpload = ({ onUploadSuccess }) => {
       setFile(selectedFile);
       // 파일 확장자로 타입 추론
       const ext = selectedFile.name.split('.').pop().toLowerCase();
+      if (['mp3', 'wav', 'm4a', 'ogg'].includes(ext)) {
+        setFileType('audio');
+      } else if (['mp4', 'avi', 'mov', 'webm'].includes(ext)) {
+        setFileType('video');
+      } else {
+        setFileType('text');
+      }
+    }
+  };
+
+  const handleFileButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) {
+      setFile(droppedFile);
+      // 파일 확장자로 타입 추론
+      const ext = droppedFile.name.split('.').pop().toLowerCase();
       if (['mp3', 'wav', 'm4a', 'ogg'].includes(ext)) {
         setFileType('audio');
       } else if (['mp4', 'avi', 'mov', 'webm'].includes(ext)) {
@@ -69,6 +97,11 @@ const ConsultationUpload = ({ onUploadSuccess }) => {
           setError('분석 중 오류가 발생했습니다.');
           eventSource.close();
           setUploading(false);
+        } else if (data.type === 'error') {
+          setUploadStatus('연결 오류');
+          setError(data.error || '연결 중 오류가 발생했습니다.');
+          eventSource.close();
+          setUploading(false);
         } else if (data.type === 'processing') {
           setUploadStatus('분석 중...');
         }
@@ -100,33 +133,62 @@ const ConsultationUpload = ({ onUploadSuccess }) => {
         
         <div className="form-group">
           <label htmlFor="file">파일</label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            id="file"
-            onChange={handleFileChange}
-            disabled={uploading}
-            accept=".txt,.doc,.docx,.mp3,.wav,.m4a,.mp4,.avi,.mov"
-          />
-          {file && (
-            <div className="file-info">
-              선택된 파일: <strong>{file.name}</strong> ({(file.size / 1024).toFixed(2)} KB)
-            </div>
-          )}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="fileType">파일 타입</label>
-          <select
-            id="fileType"
-            value={fileType}
-            onChange={(e) => setFileType(e.target.value)}
-            disabled={uploading}
+          <div 
+            className="file-upload-area"
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
           >
-            <option value="text">텍스트</option>
-            <option value="audio">오디오</option>
-            <option value="video">비디오</option>
-          </select>
+            <input
+              ref={fileInputRef}
+              type="file"
+              id="file"
+              onChange={handleFileChange}
+              disabled={uploading}
+              accept=".txt,.doc,.docx,.mp3,.wav,.m4a,.mp4,.avi,.mov"
+              className="file-input-hidden"
+            />
+            <div className="file-upload-content">
+              <div className="file-upload-icon">📁</div>
+              <div className="file-upload-text">
+                {file ? (
+                  <>
+                    <strong>{file.name}</strong>
+                    <span className="file-size">({(file.size / 1024).toFixed(2)} KB)</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="file-upload-main-text">파일을 선택하거나 여기에 드래그하세요</span>
+                    <span className="file-upload-sub-text">텍스트, 오디오, 비디오 파일 지원</span>
+                  </>
+                )}
+              </div>
+              {!file && (
+                <button
+                  type="button"
+                  onClick={handleFileButtonClick}
+                  disabled={uploading}
+                  className="file-select-btn"
+                >
+                  파일 선택
+                </button>
+              )}
+              {file && (
+                <button
+                  type="button"
+                  onClick={handleFileButtonClick}
+                  disabled={uploading}
+                  className="file-change-btn"
+                >
+                  변경
+                </button>
+              )}
+            </div>
+            {file && fileType && (
+              <div className="file-type-badge-upload">
+                {fileType === 'audio' ? '🎵 오디오' : fileType === 'video' ? '🎬 비디오' : '📄 텍스트'}
+              </div>
+            )}
+          </div>
         </div>
 
         <button type="submit" disabled={uploading || !file || !title}>
@@ -148,9 +210,8 @@ const ConsultationUpload = ({ onUploadSuccess }) => {
       )}
 
       {analysisResult && (
-        <div className="analysis-result">
-          <h3>분석 결과</h3>
-          <div className="result-content">{analysisResult}</div>
+        <div className="upload-analysis-result">
+          <AnalysisResultDisplay analysisResult={analysisResult} />
         </div>
       )}
     </div>

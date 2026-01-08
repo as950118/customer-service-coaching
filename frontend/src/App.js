@@ -1,49 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import ConsultationUpload from './components/ConsultationUpload';
-import ConsultationList from './components/ConsultationList';
-import { getConsultations } from './api';
+import HomePage from './components/HomePage';
+import LoginPage from './components/LoginPage';
+import SignupPage from './components/SignupPage';
+import Dashboard from './components/Dashboard';
+import ConsultationDetail from './components/ConsultationDetail';
+
+// 보호된 라우트 컴포넌트
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('access_token');
+  return token ? children : <Navigate to="/login" replace />;
+};
 
 function App() {
-  const [consultations, setConsultations] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadConsultations();
-  }, []);
-
-  const loadConsultations = async () => {
-    try {
-      setLoading(true);
-      const data = await getConsultations();
-      setConsultations(data.results || data);
-    } catch (error) {
-      console.error('상담 목록 로드 실패:', error);
-      // 에러 발생 시 빈 배열로 설정
-      setConsultations([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUploadSuccess = () => {
-    loadConsultations();
-  };
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>고객 상담 코칭 시스템</h1>
-      </header>
-      <main className="App-main">
-        <ConsultationUpload onUploadSuccess={handleUploadSuccess} />
-        <ConsultationList 
-          consultations={consultations} 
-          loading={loading}
-          onRefresh={loadConsultations}
-        />
-      </main>
-    </div>
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/consultations/:id"
+            element={
+              <ProtectedRoute>
+                <ConsultationDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

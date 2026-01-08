@@ -76,24 +76,114 @@ button:hover:not(:disabled) {
   color: #155724;
 }
 
-.analysis-result {
-  margin-top: 20px;
-  padding: 15px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  border-left: 4px solid #007bff;
+.upload-analysis-result {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.analysis-result h3 {
-  margin-top: 0;
+.file-input-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.file-upload-area {
+  position: relative;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  background-color: #fafafa;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.file-upload-area:hover {
+  border-color: #667eea;
+  background-color: #f8f9ff;
+}
+
+.file-upload-area:active {
+  border-color: #5568d3;
+}
+
+.file-upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-upload-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.file-upload-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.file-upload-main-text {
+  font-size: 16px;
+  font-weight: 500;
   color: #333;
 }
 
-.analysis-result pre {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  color: #555;
-  line-height: 1.6;
+.file-upload-sub-text {
+  font-size: 13px;
+  color: #999;
+}
+
+.file-size {
+  font-size: 13px;
+  color: #666;
+  margin-left: 8px;
+}
+
+.file-select-btn,
+.file-change-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.file-select-btn:hover:not(:disabled),
+.file-change-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.file-select-btn:disabled,
+.file-change-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.file-type-badge-upload {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background-color: #667eea;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .file-info {

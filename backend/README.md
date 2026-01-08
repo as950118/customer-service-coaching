@@ -2,6 +2,20 @@
 
 ## 사전 요구사항
 
+### STT (Speech-to-Text) 처리
+
+오디오/비디오 파일 처리를 위해 다음이 필요합니다:
+
+**1. OpenAI Whisper (Python 패키지)**
+```bash
+pip install openai-whisper
+```
+
+**2. FFmpeg (비디오 파일 처리용)**
+- **macOS**: `brew install ffmpeg`
+- **Linux (Ubuntu/Debian)**: `sudo apt-get install ffmpeg`
+- **Windows**: [FFmpeg 다운로드](https://ffmpeg.org/download.html)
+
 ### Redis 설치 및 실행
 
 Celery는 비동기 작업 처리를 위해 Redis가 필요합니다.

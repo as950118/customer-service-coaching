@@ -8,6 +8,9 @@ from google.api_core import exceptions as google_exceptions
 import os
 import mimetypes
 import time
+import subprocess
+import tempfile
+import json
 from pathlib import Path
 
 
@@ -25,13 +28,19 @@ def analyze_consultation(consultation_id):
         model_name = settings.GEMINI_MODEL
         if not model_name.startswith('models/'):
             model_name = f'models/{model_name}'
-        model = genai.GenerativeModel(model_name)
+        
+        # JSON 응답을 강제하기 위한 generation_config 설정
+        generation_config = {
+            "response_mime_type": "application/json",
+            "temperature": 0.3,  # 일관성을 위해 낮은 temperature 사용
+        }
+        model = genai.GenerativeModel(model_name, generation_config=generation_config)
         
         file_path = consultation.file.path
         file_type = consultation.file_type
         
         # 프롬프트 구성
-        system_prompt = "당신은 고객 상담 품질을 분석하는 전문가입니다."
+        system_prompt = "당신은 고객 상담 품질을 분석하는 전문가입니다. 항상 지정된 JSON 형식으로만 응답해야 합니다."
         user_prompt = """다음 상담 내용을 분석하여 개선이 필요한 사항들을 도출해주세요.
 
 다음 항목들을 중심으로 분석해주세요:
@@ -40,7 +49,39 @@ def analyze_consultation(consultation_id):
 3. 커뮤니케이션 스킬
 4. 개선이 필요한 구체적인 사항
 
-분석 결과를 구조화된 형태로 제공해주세요."""
+**중요: 반드시 아래 JSON 형식으로만 응답해주세요. 다른 텍스트나 설명은 포함하지 마세요.**
+
+{
+  "summary": "상담 전반에 대한 요약 (2-3문장)",
+  "customer_service_attitude": {
+    "score": 1-10 점수,
+    "strengths": ["강점1", "강점2"],
+    "weaknesses": ["개선점1", "개선점2"],
+    "details": "상세 설명"
+  },
+  "problem_solving": {
+    "score": 1-10 점수,
+    "strengths": ["강점1", "강점2"],
+    "weaknesses": ["개선점1", "개선점2"],
+    "details": "상세 설명"
+  },
+  "communication_skills": {
+    "score": 1-10 점수,
+    "strengths": ["강점1", "강점2"],
+    "weaknesses": ["개선점1", "개선점2"],
+    "details": "상세 설명"
+  },
+  "improvement_recommendations": [
+    {
+      "category": "카테고리명",
+      "issue": "문제점 설명",
+      "recommendation": "개선 방안",
+      "priority": "high/medium/low"
+    }
+  ],
+  "overall_score": 1-10 점수,
+  "overall_feedback": "종합 피드백 (3-5문장)"
+}"""
         
         # 원본 내용 저장을 위한 변수
         original_content = None
@@ -112,31 +153,74 @@ def analyze_consultation(consultation_id):
             analysis_result = call_gemini_with_retry(full_prompt)
             
         elif file_type in ['audio', 'video']:
-            # 오디오/비디오 파일: Gemini가 직접 처리 (multimodal)
-            mime_type, _ = mimetypes.guess_type(file_path)
-            if not mime_type:
-                if file_type == 'audio':
-                    mime_type = 'audio/mpeg'
-                elif file_type == 'video':
-                    mime_type = 'video/mp4'
+            # 오디오/비디오 파일: 로컬에서 STT로 전사 후 텍스트만 LLM에 전송
+            print(f"로컬 STT 시작: {file_path}")
             
-            # 파일 읽기
-            with open(file_path, 'rb') as f:
-                file_data = f.read()
+            # 비디오 파일인 경우 오디오 추출
+            audio_path = file_path
+            temp_audio_file = None
+            temp_audio_path = None
             
-            file_part = {
-                "mime_type": mime_type,
-                "data": file_data
-            }
+            if file_type == 'video':
+                # ffmpeg를 사용하여 비디오에서 오디오 추출
+                print("비디오에서 오디오 추출 중...")
+                temp_audio_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp3')
+                temp_audio_path = temp_audio_file.name
+                temp_audio_file.close()
+                
+                try:
+                    # ffmpeg로 오디오 추출 (mp3 형식으로, Whisper가 잘 읽을 수 있도록)
+                    result = subprocess.run(
+                        ['ffmpeg', '-i', file_path, '-vn', '-acodec', 'libmp3lame', '-ab', '192k', '-ar', '44100', '-ac', '2', '-y', temp_audio_path],
+                        check=True,
+                        capture_output=True,
+                        text=True
+                    )
+                    if not os.path.exists(temp_audio_path) or os.path.getsize(temp_audio_path) == 0:
+                        raise Exception("오디오 파일 추출 실패: 파일이 생성되지 않았거나 비어있습니다.")
+                    audio_path = temp_audio_path
+                    print(f"오디오 추출 완료: {audio_path} ({os.path.getsize(audio_path)} bytes)")
+                except subprocess.CalledProcessError as e:
+                    error_msg = e.stderr.decode('utf-8', errors='ignore') if e.stderr else str(e)
+                    raise Exception(f"비디오에서 오디오 추출 실패: {error_msg}")
+                except FileNotFoundError:
+                    raise Exception("ffmpeg가 설치되지 않았습니다. 비디오 처리를 위해 ffmpeg를 설치해주세요.")
             
-            # 1단계: 먼저 전사만 수행
-            transcription_prompt = "이 오디오/비디오 파일의 대화 내용을 정확하게 텍스트로 전사해주세요. 분석은 하지 말고 전사만 해주세요."
-            original_content = call_gemini_with_retry([
-                transcription_prompt,
-                file_part
-            ])
+            # Whisper를 사용하여 로컬에서 STT 수행
+            try:
+                import whisper
+                print("Whisper 모델 로딩 중...")
+                # base 모델 사용 (더 빠르고 가벼움, 필요시 medium, large로 변경 가능)
+                whisper_model = whisper.load_model("base")
+                print(f"오디오 전사 중: {audio_path}")
+                
+                # 파일 존재 및 크기 확인
+                if not os.path.exists(audio_path):
+                    raise Exception(f"오디오 파일이 존재하지 않습니다: {audio_path}")
+                if os.path.getsize(audio_path) == 0:
+                    raise Exception(f"오디오 파일이 비어있습니다: {audio_path}")
+                
+                result = whisper_model.transcribe(audio_path, language="ko")
+                original_content = result["text"].strip()
+                
+                if not original_content:
+                    raise Exception("전사 결과가 비어있습니다. 오디오에 음성이 없거나 인식할 수 없습니다.")
+                
+                print(f"전사 완료: {len(original_content)}자")
+            except ImportError:
+                raise Exception("openai-whisper가 설치되지 않았습니다. 'pip install openai-whisper'를 실행해주세요.")
+            except Exception as e:
+                raise Exception(f"STT 전사 실패: {str(e)}")
+            finally:
+                # 임시 오디오 파일 정리
+                if temp_audio_path and os.path.exists(temp_audio_path):
+                    try:
+                        os.unlink(temp_audio_path)
+                        print(f"임시 파일 삭제: {temp_audio_path}")
+                    except Exception as e:
+                        print(f"임시 파일 삭제 실패: {e}")
             
-            # 2단계: 전사된 텍스트로 분석 수행
+            # 전사된 텍스트로 분석 수행
             full_prompt = f"""{user_prompt}
 
 상담 내용 (전사본):
@@ -146,6 +230,37 @@ def analyze_consultation(consultation_id):
             
         else:
             raise ValueError(f"지원하지 않는 파일 형식: {file_type}")
+        
+        # JSON 응답 파싱 및 검증
+        try:
+            # JSON 파싱 시도 (응답에 마크다운 코드 블록이 있을 수 있으므로 처리)
+            json_text = analysis_result.strip()
+            # 마크다운 코드 블록 제거 (```json ... ``` 형식)
+            if json_text.startswith('```'):
+                lines = json_text.split('\n')
+                json_text = '\n'.join(lines[1:-1]) if lines[-1].strip() == '```' else '\n'.join(lines[1:])
+            
+            parsed_result = json.loads(json_text)
+            
+            # 필수 필드 검증
+            required_fields = ['summary', 'customer_service_attitude', 'problem_solving', 
+                             'communication_skills', 'improvement_recommendations', 
+                             'overall_score', 'overall_feedback']
+            missing_fields = [field for field in required_fields if field not in parsed_result]
+            
+            if missing_fields:
+                print(f"경고: JSON 응답에 필수 필드가 누락되었습니다: {missing_fields}")
+                # 누락된 필드가 있어도 계속 진행 (부분적 결과라도 저장)
+            
+            # 파싱된 JSON을 다시 문자열로 변환하여 저장 (일관된 포맷)
+            analysis_result = json.dumps(parsed_result, ensure_ascii=False, indent=2)
+            print("JSON 파싱 성공")
+            
+        except json.JSONDecodeError as e:
+            print(f"경고: JSON 파싱 실패. 원본 응답을 그대로 저장합니다. 에러: {e}")
+            print(f"원본 응답 (처음 500자): {analysis_result[:500]}")
+            # JSON 파싱 실패 시 원본 응답을 그대로 저장
+            # (사용자가 확인할 수 있도록)
         
         # Supabase Storage에 파일 업로드 (선택사항)
         supabase_url = None

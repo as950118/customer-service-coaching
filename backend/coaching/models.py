@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
 
 
 class Consultation(models.Model):
@@ -11,6 +12,7 @@ class Consultation(models.Model):
         ('failed', '실패'),
     ]
     
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='consultations', verbose_name='사용자', null=True, blank=True)
     title = models.CharField(max_length=200, verbose_name='제목')
     file = models.FileField(upload_to='consultations/', verbose_name='파일')
     file_type = models.CharField(max_length=50, verbose_name='파일 타입')  # text, audio, video

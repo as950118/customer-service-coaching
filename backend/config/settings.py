@@ -148,14 +148,17 @@ CLOUDINARY_STORAGE = {
 }
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "*",
-]
+# 전체 접근 허용 (개발 환경용)
+# 주의: 프로덕션 환경에서는 특정 도메인만 허용하는 것을 권장합니다
+CORS_ALLOW_ALL_ORIGINS = True
 
-# 개발 환경에서는 모든 origin 허용 (선택사항)
-# CORS_ALLOW_ALL_ORIGINS = True  # 개발용, 프로덕션에서는 사용하지 마세요
-
-CORS_ALLOW_CREDENTIALS = True
+# CORS_ALLOW_ALL_ORIGINS = True일 때는 CORS_ALLOW_CREDENTIALS를 False로 설정해야 합니다
+# 또는 특정 origin만 허용하고 credentials를 사용하려면 아래 주석을 해제하세요
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+# ]
+# CORS_ALLOW_CREDENTIALS = True
 
 # 허용할 HTTP 메서드
 CORS_ALLOW_METHODS = [

@@ -1,34 +1,4 @@
-// 환경에 따라 API URL 결정 (런타임에 동적으로 결정)
-// Vercel 배포 시: 프록시를 통해 /api 사용 (HTTPS → HTTPS)
-// 로컬 개발 시: 직접 백엔드 URL 사용
-const getApiBaseUrl = () => {
-  // 환경 변수가 설정되어 있으면 사용
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  
-  // 브라우저 환경에서만 window 객체 확인
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    
-    // Vercel 배포 환경인지 확인
-    if (hostname.includes('vercel.app') || hostname.includes('vercel.com')) {
-      // Vercel에서는 프록시를 통해 /api 사용
-      return '/api';
-    }
-    
-    // HTTPS로 접속 중이면 프록시 사용 (Mixed Content 방지)
-    if (window.location.protocol === 'https:') {
-      return '/api';
-    }
-  }
-  
-  // 로컬 개발 환경 (HTTP)
-  return 'http://localhost:8000/api';
-};
-
-// 함수로 export하여 런타임에 동적으로 URL 결정
-export const getApiBaseUrlDynamic = getApiBaseUrl;
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 // 헬퍼 함수: 인증 헤더 가져오기
 const getAuthHeaders = () => {
@@ -44,7 +14,7 @@ export const uploadConsultation = async (formData) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  const response = await fetch(`${getApiBaseUrl()}/consultations/`, {
+  const response = await fetch(`${API_BASE_URL}/consultations/`, {
     method: 'POST',
     headers,
     body: formData,
@@ -74,7 +44,7 @@ export const getConsultations = async (filters = {}) => {
   if (filters.date_from) queryParams.append('date_from', filters.date_from);
   if (filters.date_to) queryParams.append('date_to', filters.date_to);
   
-  const url = `${getApiBaseUrl()}/consultations/${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+  const url = `${API_BASE_URL}/consultations/${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
   
   const response = await fetch(url, {
     headers,
@@ -96,7 +66,7 @@ export const getConsultation = async (id) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  const response = await fetch(`${getApiBaseUrl()}/consultations/${id}/`, {
+  const response = await fetch(`${API_BASE_URL}/consultations/${id}/`, {
     headers,
   });
   
@@ -110,7 +80,7 @@ export const getConsultation = async (id) => {
 
 export const subscribeToConsultation = (consultationId, onMessage) => {
   const token = localStorage.getItem('access_token');
-  const url = `${getApiBaseUrl()}/consultations/${consultationId}/stream/`;
+  const url = `${API_BASE_URL}/consultations/${consultationId}/stream/`;
   
   // EventSource는 헤더를 설정할 수 없으므로 fetch API를 사용하여 스트림 읽기
   const controller = new AbortController();
@@ -188,7 +158,7 @@ export const subscribeToConsultation = (consultationId, onMessage) => {
 
 export const downloadConsultationFile = async (consultationId, fileName) => {
   const token = localStorage.getItem('access_token');
-  const url = `${getApiBaseUrl()}/consultations/${consultationId}/download/`;
+  const url = `${API_BASE_URL}/consultations/${consultationId}/download/`;
   
   try {
     const response = await fetch(url, {
@@ -237,7 +207,7 @@ export const downloadConsultationFile = async (consultationId, fileName) => {
 
 // 인증 관련 API 함수
 export const login = async (username, password) => {
-  const response = await fetch(`${getApiBaseUrl()}/auth/login/`, {
+  const response = await fetch(`${API_BASE_URL}/auth/login/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -254,7 +224,7 @@ export const login = async (username, password) => {
 };
 
 export const register = async (username, email, password, password2) => {
-  const response = await fetch(`${getApiBaseUrl()}/auth/register/`, {
+  const response = await fetch(`${API_BASE_URL}/auth/register/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -271,7 +241,7 @@ export const register = async (username, email, password, password2) => {
 };
 
 export const getCurrentUser = async (token) => {
-  const response = await fetch(`${getApiBaseUrl()}/auth/me/`, {
+  const response = await fetch(`${API_BASE_URL}/auth/me/`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,

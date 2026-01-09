@@ -7,11 +7,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.http import StreamingHttpResponse, HttpResponse, FileResponse, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.db.models import Count, Avg, Q, F, Sum
+from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 import os
 import requests
 from urllib.parse import urlparse
+from datetime import timedelta, datetime
 from django.contrib.auth.models import User
 from .models import Consultation
 from .serializers import (
@@ -333,3 +336,239 @@ class ConsultationViewSet(viewsets.ModelViewSet):
             'analysis_result': consultation.analysis_result if consultation.analysis_result else None,
         }
         return json.dumps(data)
+
+
+class IsAdminUser(permissions.BasePermission):
+    """관리자 권한 체크"""
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+
+
+@swagger_auto_schema(
+    method='get',
+    operation_summary='KPI 지표 조회',
+    operation_description='관리자용 KPI 지표를 조회합니다. 기간 파라미터를 통해 특정 기간의 지표를 조회할 수 있습니다.',
+    tags=['관리자'],
+    manual_parameters=[
+        openapi.Parameter('period', openapi.IN_QUERY, description='기간 (daily, weekly, monthly, all)', type=openapi.TYPE_STRING),
+        openapi.Parameter('date_from', openapi.IN_QUERY, description='시작 날짜 (YYYY-MM-DD)', type=openapi.TYPE_STRING),
+        openapi.Parameter('date_to', openapi.IN_QUERY, description='종료 날짜 (YYYY-MM-DD)', type=openapi.TYPE_STRING),
+    ],
+    responses={
+        200: openapi.Response(description='KPI 지표 데이터'),
+        403: openapi.Response(description='권한 없음'),
+    }
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_kpi_metrics(request):
+    """KPI 지표 계산 및 반환"""
+    # 기간 파라미터
+    period = request.query_params.get('period', 'all')  # daily, weekly, monthly, all
+    date_from = request.query_params.get('date_from', None)
+    date_to = request.query_params.get('date_to', None)
+    
+    # 날짜 범위 설정
+    now = timezone.now()
+    if period == 'daily':
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = now
+    elif period == 'weekly':
+        start_date = now - timedelta(days=7)
+        end_date = now
+    elif period == 'monthly':
+        start_date = now - timedelta(days=30)
+        end_date = now
+    else:  # all
+        start_date = None
+        end_date = None
+    
+    # 사용자 지정 날짜 범위가 있으면 우선 적용
+    if date_from:
+        try:
+            start_date = timezone.make_aware(datetime.strptime(date_from, '%Y-%m-%d'))
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            end_date = timezone.make_aware(datetime.strptime(date_to, '%Y-%m-%d'))
+            end_date = end_date.replace(hour=23, minute=59, second=59)
+        except ValueError:
+            pass
+    
+    # 기본 쿼리셋
+    base_queryset = Consultation.objects.all()
+    if start_date:
+        base_queryset = base_queryset.filter(created_at__gte=start_date)
+    if end_date:
+        base_queryset = base_queryset.filter(created_at__lte=end_date)
+    
+    # 1. 사용자 활동 지표
+    total_consultations = base_queryset.count()
+    daily_consultations = Consultation.objects.filter(
+        created_at__date=now.date()
+    ).count() if not date_from and not date_to else None
+    
+    weekly_consultations = Consultation.objects.filter(
+        created_at__gte=now - timedelta(days=7)
+    ).count() if not date_from and not date_to else None
+    
+    monthly_consultations = Consultation.objects.filter(
+        created_at__gte=now - timedelta(days=30)
+    ).count() if not date_from and not date_to else None
+    
+    # 파일 타입별 분포
+    file_type_distribution = base_queryset.values('file_type').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    file_type_percentages = {}
+    if total_consultations > 0:
+        for item in file_type_distribution:
+            file_type_percentages[item['file_type']] = round(
+                (item['count'] / total_consultations) * 100, 1
+            )
+    
+    # 활성 사용자 수 (DAU, WAU)
+    today = now.date()
+    week_start = today - timedelta(days=7)
+    
+    dau = User.objects.filter(
+        consultations__created_at__date=today
+    ).distinct().count() if not date_from and not date_to else None
+    
+    wau = User.objects.filter(
+        consultations__created_at__gte=week_start
+    ).distinct().count() if not date_from and not date_to else None
+    
+    # 재방문율 계산 (이전에 업로드한 사용자가 다시 업로드하는 비율)
+    if not date_from and not date_to:
+        # 전체 사용자 중 이번 주에 업로드한 사용자
+        users_with_previous_uploads = User.objects.filter(
+            consultations__created_at__lt=week_start
+        ).distinct()
+        users_with_recent_uploads = User.objects.filter(
+            consultations__created_at__gte=week_start
+        ).distinct()
+        returning_users = users_with_recent_uploads.filter(
+            id__in=users_with_previous_uploads.values_list('id', flat=True)
+        ).count()
+        return_rate = round((returning_users / users_with_previous_uploads.count() * 100), 1) if users_with_previous_uploads.count() > 0 else 0
+    else:
+        return_rate = None
+    
+    # 2. 시스템 성능 지표
+    completed_consultations = base_queryset.filter(status='completed')
+    failed_consultations = base_queryset.filter(status='failed')
+    
+    success_rate = round((completed_consultations.count() / total_consultations * 100), 1) if total_consultations > 0 else 0
+    failure_rate = round((failed_consultations.count() / total_consultations * 100), 1) if total_consultations > 0 else 0
+    
+    # 평균 처리 시간 계산
+    processing_times = []
+    file_type_processing_times = {}
+    
+    for consultation in completed_consultations.filter(completed_at__isnull=False):
+        if consultation.completed_at and consultation.created_at:
+            processing_time = (consultation.completed_at - consultation.created_at).total_seconds()
+            processing_times.append(processing_time)
+            
+            # 파일 타입별 처리 시간
+            if consultation.file_type not in file_type_processing_times:
+                file_type_processing_times[consultation.file_type] = []
+            file_type_processing_times[consultation.file_type].append(processing_time)
+    
+    avg_processing_time = round(sum(processing_times) / len(processing_times), 1) if processing_times else None
+    
+    # 파일 타입별 평균 처리 시간
+    avg_processing_time_by_type = {}
+    for file_type, times in file_type_processing_times.items():
+        avg_processing_time_by_type[file_type] = round(sum(times) / len(times), 1)
+    
+    # 3. AI 분석 품질 지표
+    # 분석 결과 길이
+    analysis_lengths = [
+        len(c.analysis_result) for c in completed_consultations 
+        if c.analysis_result
+    ]
+    avg_analysis_length = round(sum(analysis_lengths) / len(analysis_lengths), 0) if analysis_lengths else None
+    
+    # 분석 항목 커버리지 (간단한 키워드 기반 체크)
+    analysis_keywords = ['태도', '문제해결', '커뮤니케이션', '개선', '제안', '피드백']
+    coverage_count = 0
+    for consultation in completed_consultations.filter(analysis_result__isnull=False):
+        analysis_text = consultation.analysis_result.lower()
+        found_keywords = sum(1 for keyword in analysis_keywords if keyword in analysis_text)
+        if found_keywords >= 2:  # 최소 2개 이상의 키워드가 있으면 커버리지 있음
+            coverage_count += 1
+    
+    coverage_rate = round((coverage_count / completed_consultations.count() * 100), 1) if completed_consultations.count() > 0 else 0
+    
+    # 4. 기술적 지표
+    # 데이터베이스 크기 (SQLite인 경우)
+    db_size = None
+    try:
+        from django.conf import settings
+        if 'sqlite' in settings.DATABASES['default']['ENGINE']:
+            db_path = settings.DATABASES['default']['NAME']
+            if os.path.exists(db_path):
+                db_size = os.path.getsize(db_path) / (1024 * 1024)  # MB 단위
+                db_size = round(db_size, 2)
+    except Exception:
+        pass
+    
+    # Supabase 업로드 성공률
+    supabase_uploaded = base_queryset.filter(supabase_file_url__isnull=False).count()
+    supabase_success_rate = round((supabase_uploaded / total_consultations * 100), 1) if total_consultations > 0 else 0
+    
+    # 응답 데이터 구성
+    response_data = {
+        'period': period,
+        'date_range': {
+            'from': start_date.isoformat() if start_date else None,
+            'to': end_date.isoformat() if end_date else None,
+        },
+        'user_engagement': {
+            'total_consultations': total_consultations,
+            'daily_consultations': daily_consultations,
+            'weekly_consultations': weekly_consultations,
+            'monthly_consultations': monthly_consultations,
+            'file_type_distribution': file_type_percentages,
+            'file_type_counts': {item['file_type']: item['count'] for item in file_type_distribution},
+            'dau': dau,
+            'wau': wau,
+            'return_rate': return_rate,
+        },
+        'system_performance': {
+            'total_consultations': total_consultations,
+            'completed_count': completed_consultations.count(),
+            'failed_count': failed_consultations.count(),
+            'success_rate': success_rate,
+            'failure_rate': failure_rate,
+            'avg_processing_time_seconds': avg_processing_time,
+            'avg_processing_time_by_type': avg_processing_time_by_type,
+        },
+        'ai_analysis_quality': {
+            'avg_analysis_length': avg_analysis_length,
+            'coverage_rate': coverage_rate,
+            'completed_analyses': completed_consultations.count(),
+        },
+        'technical_metrics': {
+            'db_size_mb': db_size,
+            'supabase_success_rate': supabase_success_rate,
+            'total_files': total_consultations,
+        },
+        'targets': {
+            'daily_consultations': 10,
+            'weekly_consultations': 50,
+            'monthly_consultations': 200,
+            'success_rate': 95,
+            'failure_rate': 5,
+            'avg_processing_time_text': 30,
+            'avg_processing_time_audio': 120,
+            'avg_processing_time_video': 300,
+            'coverage_rate': 80,
+        }
+    }
+    
+    return Response(response_data)

@@ -6,12 +6,6 @@
     <link rel="icon" type="image/png" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#667eea" />
-    <meta name="referrer" content="no-referrer-when-downgrade" />
-    <!-- 
-      CSP 설정: Vercel 배포 시 프록시를 통해 /api 사용하므로 HTTPS만 허용
-      로컬 개발 시에는 환경 변수로 HTTP 백엔드 허용 가능
-    -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; connect-src 'self' https: http://localhost:* http://127.0.0.1:* data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:;">
     <meta
       name="description"
       content="AI 기반 고객 상담 코칭 시스템 - 상담 품질 분석 및 개선 제안"

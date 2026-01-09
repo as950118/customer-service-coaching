@@ -9,6 +9,7 @@ from .views import (
     ConsultationViewSet,
     UserRegistrationView,
     get_current_user,
+    get_kpi_metrics,
 )
 
 router = DefaultRouter()
@@ -23,5 +24,8 @@ urlpatterns = [
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('auth/me/', get_current_user, name='current_user'),
+    
+    # 관리자 KPI
+    path('admin/kpi/', get_kpi_metrics, name='kpi_metrics'),
 ]
 

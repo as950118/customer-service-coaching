@@ -254,12 +254,16 @@ REACT_APP_API_URL=http://localhost:8000/api
 3. Celery Worker 실행 (`celery -A config worker -l info`)
 4. React 개발 서버 실행 (`npm start`)
 
+## 아키텍처 문서
+
+전체 시스템 아키텍처, 배포 구조, 데이터 흐름에 대한 상세 문서는 [ARCHITECTURE.md](./ARCHITECTURE.md)를 참고하세요.
+
 ## API 문서
 
 Django 서버 실행 후 다음 URL에서 Swagger API 문서를 확인할 수 있습니다:
 
-- **Swagger UI**: http://localhost:8000/swagger/
-- **ReDoc**: http://localhost:8000/redoc/
+- **Swagger UI**: http://localhost:8000/swagger/ (로컬) / http://112.158.127.64:8000/swagger/ (프로덕션)
+- **ReDoc**: http://localhost:8000/redoc/ (로컬) / http://112.158.127.64:8000/redoc/ (프로덕션)
 
 ## KPI 시트
 

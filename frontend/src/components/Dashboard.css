@@ -54,21 +54,58 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
+.admin-link {
+  background-color: rgba(102, 126, 234, 0.8);
+  color: white;
+  border: 1px solid rgba(102, 126, 234, 0.9);
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.admin-link svg {
+  flex-shrink: 0;
+}
+
+.admin-link:hover {
+  background-color: rgba(102, 126, 234, 1);
+  border-color: rgba(102, 126, 234, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
 .logout-btn {
   background-color: rgba(255, 255, 255, 0.1);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.logout-btn svg {
+  flex-shrink: 0;
 }
 
 .logout-btn:hover {
   background-color: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dashboard-main {
@@ -87,10 +124,24 @@
   .header-right {
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .dashboard-header h1 {
     font-size: 1.25rem;
+  }
+
+  .admin-link span,
+  .logout-btn span {
+    display: none;
+  }
+
+  .admin-link,
+  .logout-btn {
+    padding: 8px;
+    min-width: 36px;
+    justify-content: center;
   }
 }
 

@@ -37,7 +37,7 @@ class UserSerializer(serializers.ModelSerializer):
     """사용자 정보 시리얼라이저"""
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser')
 
 
 class ConsultationSerializer(serializers.ModelSerializer):

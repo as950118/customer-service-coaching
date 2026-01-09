@@ -256,3 +256,31 @@ export const getCurrentUser = async (token) => {
   return response.json();
 };
 
+// 관리자 KPI API
+export const getKPIMetrics = async (period = 'all', dateFrom = null, dateTo = null) => {
+  const token = localStorage.getItem('access_token');
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+  };
+  
+  const queryParams = new URLSearchParams();
+  if (period) queryParams.append('period', period);
+  if (dateFrom) queryParams.append('date_from', dateFrom);
+  if (dateTo) queryParams.append('date_to', dateTo);
+  
+  const url = `${API_BASE_URL}/admin/kpi/${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+  
+  const response = await fetch(url, {
+    headers,
+  });
+  
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('관리자 권한이 필요합니다.');
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || 'KPI 조회 실패');
+  }
+  
+  return response.json();
+};
